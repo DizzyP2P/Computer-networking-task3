@@ -27,7 +27,7 @@ public class Socket {
             return totalBytesRead;
         }
         catch(Exception e){
-            e.printStackTrace();
+            System.err.println("客户端断开连接");
             this.endOfStreamReached = true;
             return Message.IOERROR;
         }

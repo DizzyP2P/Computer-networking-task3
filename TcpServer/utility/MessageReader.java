@@ -35,15 +35,16 @@ public class MessageReader {
             int length = buffer.getInt();
             if(Type==Message.INIT){
                 socket.N = length;
-                completeMessages.add(new Message(Message.AGREE,0,"",socket.socketId));
+                Message N = new Message(Message.AGREE,0,null,socket.socketId);
+                completeMessages.add(N);
                 continue;
             }
             if (buffer.remaining() >= length) {
                 byte[] byteArray = new byte[length];
                 buffer.get(byteArray);
-                String Tosend = new String(byteArray,"UTF-8");
-                Tosend = new StringBuffer(Tosend).reverse().toString();
-                completeMessages.add(new Message(Message.ANSWER,length,Tosend,socket.socketId));
+                Message N = new Message(Message.ANSWER,length,byteArray,socket.socketId);
+                System.out.println(N.toString());
+                completeMessages.add(N);
             } else {
                 buffer.reset(); // 重置到标记位置
                 break;
