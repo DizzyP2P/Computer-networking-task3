@@ -10,6 +10,22 @@ public class MessageReader {
     public List<Message> getMessages(){
         return completeMessages;
     }
+    public static void reverse(byte[] array) {
+        if (array == null || array.length <= 1) {
+            return;
+        }
+
+        int left = 0;
+        int right = array.length - 1;
+
+        while (left < right) {
+            byte temp = array[left];
+            array[left] = array[right];
+            array[right] = temp;
+            left++;
+            right--;
+        }
+    }
     public void readMessage(Socket socket,ByteBuffer byteBuffer) throws IOException{
         int bytesRead = socket.read(byteBuffer);
         byteBuffer.flip();
@@ -42,6 +58,7 @@ public class MessageReader {
             if (buffer.remaining() >= length) {
                 byte[] byteArray = new byte[length];
                 buffer.get(byteArray);
+                reverse(byteArray);
                 Message N = new Message(Message.ANSWER,length,byteArray,socket.socketId);
                 System.out.println(N.toString());
                 completeMessages.add(N);

@@ -1,45 +1,42 @@
 package TcpClient.core;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.LinkedList;
-import java.util.Queue;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
-
 import TcpClient.utility.toolFunction;
 
 public class ClientStart {
     private final Object runlock = new Object();
-    private boolean running = false;
-    private String host;  // 服务器地址
-    private int port;           // 服务器端口
-    private String file_path; // 文件路径
     private long send_size;
     private int lmin;       
     private int lmax;       
     private int package_num;       
     private long file_size = 0;       
+    private long receive_file_lenth = 0;       
     private Socket socket = null;
 
-    private String buffername = "/Users/mac/projects/task3/TcpClient/core/.tmp";
+    private String buffername = ".tmp";
+    private String ouputFile= "des";
 
     DataOutputStream out = null;
     DataInputStream in  = null;
 
     FileInputStream filein = null;
     FileOutputStream writer = null;
-
+    
     FileChannel fileinchChannel = null;
     ByteBuffer fileBuffer;
     private boolean asked = false;
-    private Queue<Integer> MessageToDiliver = new LinkedList<Integer>();
+    private List<Integer> MessageToDiliver = new ArrayList<>();
     private Random random = new Random();
 
     private byte[] readBytesFromFile(long off,int size) throws IOException {
@@ -55,7 +52,7 @@ public class ClientStart {
         return fileBuffer.array();
     }
 
-    public ClientStart(Socket socket,DataInputStream in,DataOutputStream out,String file_path,long file_size,long send_size,int lmin,int lmax) {
+    public ClientStart(Socket socket,DataInputStream in,DataOutputStream out,String ouString,String file_path,long file_size,long send_size,int lmin,int lmax) {
         this.file_size = file_size;
         //保证 文件必然存在
         this.in = in;
@@ -69,10 +66,10 @@ public class ClientStart {
             System.exit(22);
         }
         fileinchChannel = filein.getChannel();
-        this.file_path= file_path;
         this.send_size = send_size;
         this.lmax = lmax;
         this.lmin = lmin;
+        this.socket = socket;
         long totalBytes=0;
         int tmp = 0;
         while(send_size-totalBytes>lmax){
@@ -82,8 +79,44 @@ public class ClientStart {
         }
         MessageToDiliver.add(((int)(send_size-totalBytes)));
         package_num = MessageToDiliver.size();
+
     }
 
+    public void handlehalfReversedFile(){
+        System.out.println("Handling......");
+        try{
+            File file = new File(ouputFile);
+            if (file.exists()) {
+                file.delete();
+            }  
+            file.createNewFile();
+            writer = new FileOutputStream(ouputFile,true);
+            filein = new FileInputStream(buffername);
+            fileinchChannel = filein.getChannel();
+            int si = MessageToDiliver.size() -1;
+            long off = receive_file_lenth;
+            for (int i = si; i >=0; i--) {
+                int upper= MessageToDiliver.get(i);
+                off-=upper;
+                byte[] a =readBytesFromFile(off,upper);
+                writer.write(a);
+            }
+            writer.close();
+            filein.close();
+            fileinchChannel.close();
+            file = new File(buffername);
+            if (file.exists()) {
+                file.delete();
+            }  
+            System.out.println("Success!");
+        }
+        catch(FileNotFoundException e){
+            e.printStackTrace();
+        }
+        catch(IOException e){
+            e.printStackTrace();
+        }
+    }
     class send_file implements Runnable{
         public void run(){
             int upper = 0;
@@ -95,20 +128,18 @@ public class ClientStart {
                     asked = true;
                     runlock.notify();
                 }
-                System.out.println("发送包数量: " + package_num);
-                while(!MessageToDiliver.isEmpty()){
-                    upper = MessageToDiliver.poll();
-
+                System.out.println("Package_num: " + package_num);
+                for (int i = 0; i < MessageToDiliver.size(); i++) {
+                    upper = MessageToDiliver.get(i);
                     out.writeShort(toolFunction.REQUEST);
-
                     out.writeInt(upper);
                     byte[] a = readBytesFromFile(off, upper);
                     out.write(a);
-
-                    System.out.println("发送信息成功! 大小" + upper + " 位置:" + off + "内容: " + new String(a));
-
+                    // System.out.println("发送信息成功! 大小" + upper + " 位置:" + off + "内容: " + new String(a));
                     off+=upper;
                 }
+                filein.close();
+                fileinchChannel.close();
             }
             catch(Exception e){
                 System.err.println("IO错误!");
@@ -121,14 +152,14 @@ public class ClientStart {
         public void run(){
             try{
                 File file = new File(buffername);
-                if (!file.exists()) {
-                    file.createNewFile();
+                if (file.exists()) {
+                    file.delete();
                 }  
+                file.createNewFile();
                 writer = new FileOutputStream(buffername,true);
                 synchronized(runlock){
                     while (!asked) {
                         try {
-                            System.out.println("等待中");
                             runlock.wait();
                         } catch (InterruptedException e) {
                             Thread.currentThread().interrupt();
@@ -136,7 +167,6 @@ public class ClientStart {
                         }
                     }
                 }
-                System.out.println("等待完了");
                 int receivedNum = 0;
                 int length;
                 byte[] bytes;
@@ -144,15 +174,17 @@ public class ClientStart {
                 if(type!=toolFunction.AGREE){
                     System.err.println("出现未知报文"+type);    
                 }
-                System.out.println("收到应答报文");
+                System.out.println("Receiving......");
                 while (receivedNum<package_num) {
                     type = in.readShort();
                     length = in.readInt();
                     bytes = in.readNBytes(length);            
-                    System.out.println("接受信息:" +type+ "长度" + length+ "内容:"+new String(bytes));
+                    // System.out.println("接受信息:" +type+ "长度" + length+ "内容:"+new String(bytes));
+                    receive_file_lenth+=length;
                     writer.write(bytes);
                     receivedNum++;
                 }
+                writer.close();
             }
         catch(Exception e){
             e.printStackTrace();
@@ -160,44 +192,115 @@ public class ClientStart {
         }
         }
     }
-
     public void start(){
         Thread receivThread = new Thread(new receive_file());
         Thread sendThread = new Thread(new send_file());
         sendThread.run();
         receivThread.run();
+        try{
+            socket.close();
+        }
+        catch(IOException e){
+            System.err.println("socket already closed");
+        }
+        try{
+            sendThread.join(); receivThread.join();
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
+        this.handlehalfReversedFile();
     }
     public static void main(String[] args) {
         String host = null;  // 服务器地址
         int port = 12346;           // 服务器端口
-        String file_path = "/Users/mac/projects/task3/TcpClient/core/randomFile.txt"; // 文件路径
-        long send_size = 100;     // 读取文件的字节大小
+
+        String file_path = "source.txt"; // 文件路径
+        String des_file_path = "result.txt";
+        long send_size = 100000;     // 读取文件的字节大小
         long file_size = 0;
-        int lmin = 30;       
-        int lmax = 30;       
+        int lmin = 1000;       
+        int lmax = 1000;       
         ClientStart client = null;
         Socket socket = null;
         File F = new File(file_path);
         DataOutputStream out = null;
         DataInputStream in  = null;
 
+        boolean showHelp = false;
+        boolean showVersion = false;
+
+        // String currentPath = System.getProperty("user.dir");
+        // System.out.println("当前工作路径: " + currentPath);
+
+        for (int i = 0; i < args.length; i++) {
+            switch (args[i]) {
+                case "-h":
+                case "--help":
+                    showHelp = true;
+                    break;
+                case "-s":
+                case "--size":
+                    if (i + 1 < args.length) {
+                        send_size = Long.parseLong(args[++i]); // 获取文件路径参数
+                    }else {
+                        System.err.println("Error: Option -s need a value (size)");
+                        return;
+                    }
+                    break;
+                case "-l":
+                case "--limit":
+                    if (i + 2 < args.length) {
+                        lmin = Integer.parseInt(args[++i]); // 获取文件路径参数
+                        lmax = Integer.parseInt(args[++i]); // 获取文件路径参数
+                    }else {
+                        System.err.println("Error: Option -l need two value (lmin lmax)");
+                        return;
+                    }
+                    break;
+
+                case "-f":
+                case "--file":
+                    if (i + 1 < args.length) {
+                        file_path = args[++i]; // 获取文件路径参数
+                    }else {
+                        System.err.println("Error: Option -f need a value");
+                        return;
+                    }
+                    break;
+                case "-d":
+                case "--desfile":
+                    if (i + 1 < args.length) {
+                        des_file_path = args[++i]; // 获取文件路径参数
+                    }else {
+                        System.err.println("Error: Option -d need a value");
+                        return;
+                    }
+                    break;
+                default:
+                    System.err.println("Unknown Option: " + args[i]);
+                    showHelp = true;
+                    break;
+            }
+        }
+
         if(!F.exists()){
-            System.err.println("文件不存在");
+            System.err.println("Can find File:"+file_path+"");
             System.exit(22);
         }
         if(!F.isFile()){
-            System.err.println("不是文本文件");
+            System.err.println("File:"+file_path+" is not a file");
             System.exit(22);
         }
         if(!F.canRead()){
-            System.err.println("文件不可读");
+            System.err.println("File:"+file_path+" is not readable");
             System.exit(22);
         }
 
         file_size = F.length();
 
         if(send_size>file_size){
-            System.err.println("Send size too big,exceed the length of the file:"+ file_path + "("+ file_size+ ")");
+            System.err.println("Size too big, exceed the length of the file:"+ file_path + "("+ file_size+ ")");
             return;
         }
 
@@ -208,10 +311,10 @@ public class ClientStart {
             System.out.println("Connected:" + socket.getRemoteSocketAddress());
         }
         catch(IOException e){
-            System.err.println("服务器未打开");
+            System.err.println("Server is not open");
             System.exit(22);
         }
-        client = new ClientStart(socket,in,out,file_path,file_size, send_size, lmin, lmax);
+        client = new ClientStart(socket,in,out,des_file_path,file_path,file_size, send_size, lmin, lmax);
         client.start();
     }
 }
