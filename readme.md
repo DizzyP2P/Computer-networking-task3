@@ -8,6 +8,7 @@ Options:
   -l, --limit <min> <max> Specify the minimum and maximum packet sizes(1048576) for data chunks.
   -p, --port <port>     Specify the port number to connect to on the server.
   -a, --addr <address>  Specify the IP address or hostname of the server.
+  -g show the details.
 
 Examples:
   java ClientStart --file example.txt --size 1024 --desfile output.txt --port 12345 --addr 192.168.1.1

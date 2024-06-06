@@ -147,7 +147,6 @@ public class SocketProcessor implements Runnable {
         if (fullMessages.size() > 0) {
             for (Message message : fullMessages) {
                 MessageToDiliver.add(message);
-                logprint(message.toString(), false);
             }
             fullMessages.clear();
         }

@@ -137,11 +137,10 @@ public class ClientStart {
         try{
             int upper = 0;
             long off = random.nextLong(file_size-send_size+1);
-            System.out.println("发送请求..... 报文: " + package_num + "段");
+            System.out.println("发送请求..... 报文: " + package_num + "段" + " 报文大小: " + send_size + "Bytes");
             out.writeShort(INIT);
             out.writeInt(package_num);
             short type = in.readShort();
-            int length = 0;
             byte[] bytes;
             File file = new File(buffername);
             long totalSentBytes = 0;
@@ -167,11 +166,11 @@ public class ClientStart {
                 totalSentBytes += upper;
                 printProgress(totalSentBytes, send_size);
                 type = in.readShort();
-                length = in.readInt();
-                bytes = in.readNBytes(length);
+                in.readInt();
+                bytes = in.readNBytes(upper);
                 if(showContent)
-                    System.out.println("收到: "+upper +"   content: \n" + new String(bytes,"ASCII"));
-                receive_file_lenth += length;
+                    System.out.println("第"+ i +"块: "+upper +"   content: \n" + new String(bytes,"ASCII"));
+                receive_file_lenth += upper;
                 writer.write(bytes);           
             }
             socket.close();
@@ -185,7 +184,7 @@ public class ClientStart {
         this.handlehalfReversedFile();
         long endTime = System.currentTimeMillis();  // 结束时间
         long duration = endTime - startTime;       // 计算传输时间
-        System.out.println("传输时间: " + duration/1000 + " 秒");
+        System.out.println("传输时间: " + (float)duration/1000 + " 秒");
     }
     public static void main(String[] args) {
         String host = null;  // 服务器地址
@@ -198,7 +197,6 @@ public class ClientStart {
         int lmax = 100;       
         ClientStart client = null;
         Socket socket = null;
-        File F = new File(file_path);
         DataOutputStream out = null;
         DataInputStream in  = null;
         boolean showHelp = false;
@@ -315,6 +313,8 @@ public class ClientStart {
             System.out.println("  java ClientStart -f example.txt -s MAX -d result.txt -l 100 2000 -p 12345 -a localhost");
             System.exit(22);
         }
+
+        File F = new File(file_path);
 
         if(!F.exists()){
             System.err.println("Can find File:"+file_path+"");
