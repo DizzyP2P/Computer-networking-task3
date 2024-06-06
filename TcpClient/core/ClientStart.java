@@ -38,6 +38,7 @@ public class ClientStart {
     
     FileChannel fileinchChannel = null;
     ByteBuffer fileBuffer;
+    private boolean showContent;
     private List<Integer> MessageToDiliver = new ArrayList<>();
     private Random random = new Random();
 
@@ -54,11 +55,12 @@ public class ClientStart {
         return fileBuffer.array();
     }
 
-    public ClientStart(Socket socket,DataInputStream in,DataOutputStream out,String ouString,String file_path,long file_size,long send_size,int lmin,int lmax) {
+    public ClientStart(boolean showContent,Socket socket,DataInputStream in,DataOutputStream out,String ouString,String file_path,long file_size,long send_size,int lmin,int lmax) {
         this.file_size = file_size;
         //保证 文件必然存在
         this.in = in;
         this.out = out;
+        this.showContent = showContent;
         try{
             filein = new FileInputStream(file_path);
         }
@@ -119,6 +121,9 @@ public class ClientStart {
         }
     }
     public void printProgress(long totalBytes, long file_size) {
+        if(showContent){
+            return;
+        }
         int width = 50; // 进度条的宽度
         double ratio = (double) totalBytes / file_size;
         int completed = (int) (ratio * width);
@@ -139,6 +144,7 @@ public class ClientStart {
             int length = 0;
             byte[] bytes;
             File file = new File(buffername);
+            long totalSentBytes = 0;
             if (file.exists()) {
                 file.delete();
             }  
@@ -150,7 +156,7 @@ public class ClientStart {
             }
             System.out.println("请求接受.....");
             System.out.println("处理中.....");
-            // printProgress(totalSentBytes, send_size);
+            printProgress(totalSentBytes, send_size);
             for (int i = 0; i < MessageToDiliver.size(); i++) {
                 upper = MessageToDiliver.get(i);
                 out.writeShort(REQUEST);
@@ -158,12 +164,13 @@ public class ClientStart {
                 byte[] a = readBytesFromFile(off, upper);
                 out.write(a);
                 off+=upper;
-                System.out.println("upper: "+upper +"   content: \n" + new String(a,"ASCII"));
-                // printProgress(totalSentBytes, send_size);
+                totalSentBytes += upper;
+                printProgress(totalSentBytes, send_size);
                 type = in.readShort();
                 length = in.readInt();
                 bytes = in.readNBytes(length);
-                System.out.println("收到: "+upper +"   content: \n" + new String(bytes,"ASCII"));
+                if(showContent)
+                    System.out.println("收到: "+upper +"   content: \n" + new String(bytes,"ASCII"));
                 receive_file_lenth += length;
                 writer.write(bytes);           
             }
@@ -195,6 +202,7 @@ public class ClientStart {
         DataOutputStream out = null;
         DataInputStream in  = null;
         boolean showHelp = false;
+        boolean showContent = false;
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
                 case "-h":
@@ -275,6 +283,9 @@ public class ClientStart {
                         return;
                     }
                     break;
+                case "-g":
+                    showContent = true;
+                    break;
                 default:
                     System.err.println("Unknown Option: " + args[i]);
                     showHelp = true;
@@ -298,6 +309,7 @@ public class ClientStart {
             System.out.println("  -l, --limit <min> <max> Specify the minimum and maximum packet sizes(1048576) for data chunks.");
             System.out.println("  -p, --port <port>     Specify the port number to connect to on the server.");
             System.out.println("  -a, --addr <address>  Specify the IP address or hostname of the server.");
+            System.out.println("  -g, show content.");
             System.out.println("\nExamples:");
             System.out.println("  java ClientStart --file example.txt --size 1024 --desfile output.txt --port 12345 --addr 192.168.1.1");
             System.out.println("  java ClientStart -f example.txt -s MAX -d result.txt -l 100 2000 -p 12345 -a localhost");
@@ -344,7 +356,7 @@ public class ClientStart {
             System.err.println("Server is not open");
             System.exit(22);
         }
-        client = new ClientStart(socket,in,out,des_file_path,file_path,file_size, send_size, lmin, lmax);
+        client = new ClientStart(showContent,socket,in,out,des_file_path,file_path,file_size, send_size, lmin, lmax);
         client.start();
     }
 }
