@@ -60,7 +60,6 @@ public class MessageReader {
                 buffer.get(byteArray);
                 reverse(byteArray);
                 Message N = new Message(Message.ANSWER,length,byteArray,socket.socketId);
-                System.out.println(N.toString());
                 completeMessages.add(N);
             } else {
                 buffer.reset(); // 重置到标记位置

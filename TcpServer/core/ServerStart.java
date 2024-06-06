@@ -80,16 +80,19 @@ public class ServerStart {
     }
 
     public static void main(String[] args) {
-        // if (args.length < 1) {
-        //     System.out.println("Usage: java Server <log_file_path>");
-        //     return;
-        // }
-        String filePath = "/Users/mac/projects/task3/TcpServer/core/log.txt"; // 获取命令行传递的第一个参数作为文件路径
-        int tcpPort = 12346; // 设置TCP端口号
-        try {
-            new ServerStart(tcpPort).start(filePath);
-        } catch (IOException e) {
-            System.err.println("启动服务器失败!");
-        }
+            if (args.length < 2) {
+                System.out.println("Usage: java ServerStart <log_file_path> <tcp_port>");
+                System.out.println("Example: java ServerStart log.txt 12345");
+                return;
+            }
+            String logFilePath = args[0]; // 获取命令行传递的第一个参数作为日志文件路径
+            int tcpPort = Integer.parseInt(args[1]); // 获取命令行传递的第二个参数作为端口号
+        
+            try {
+                new ServerStart(tcpPort).start(logFilePath);
+            } catch (IOException e) {
+                System.err.println("启动服务器失败: " + e.getMessage());
+                e.printStackTrace();
+            }
     }
 }

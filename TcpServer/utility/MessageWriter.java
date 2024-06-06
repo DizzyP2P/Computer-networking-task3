@@ -28,14 +28,11 @@ public class MessageWriter {
         else{
             byteBuffer.putShort(messageInProgress.type);
             byteBuffer.putInt(messageInProgress.length);
-            byte[] a = messageInProgress.Content;
-            System.out.println(a.length);
             byteBuffer.put(messageInProgress.Content);
         }
         byteBuffer.flip();
         this.bytesWritten = socket.write(byteBuffer);
         byteBuffer.clear();
-        System.out.println("写入字节:"+bytesWritten);
         if(bytesWritten >= this.messageInProgress.length){
             if(this.writeQueue.size() > 0){
                 this.messageInProgress = this.writeQueue.remove(0);

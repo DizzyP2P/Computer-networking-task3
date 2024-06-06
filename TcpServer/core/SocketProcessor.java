@@ -27,9 +27,9 @@ public class SocketProcessor implements Runnable {
     // 队列，用于存储待发送的消息
     private Queue<Message> MessageToDiliver = new LinkedList<Message>();
     // 缓冲区，用于读取数据
-    private ByteBuffer readByteBuffer = ByteBuffer.allocate(1024);
+    private ByteBuffer readByteBuffer = ByteBuffer.allocate(1024*1024);
     // 缓冲区，用于写入数据
-    private ByteBuffer writeByteBuffer = ByteBuffer.allocate(1024);
+    private ByteBuffer writeByteBuffer = ByteBuffer.allocate(1024*1024);
     // 标志，用于指示是否关闭服务器
     private boolean closeflage = false;
     // 标志，用于指示服务器是否在运行
@@ -55,11 +55,6 @@ public class SocketProcessor implements Runnable {
             try {
                 executeCycle();
             } catch (IOException e) {
-                e.printStackTrace();
-            }
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
@@ -105,7 +100,7 @@ public class SocketProcessor implements Runnable {
 
             String formattedTime = currentTime.format(formatter);
 
-            String log = "[" + formattedTime + "]" + "new connetion fetched "+"(" + newSocket.socketId + ")" + ": " + newSocket.socketChannel.socket().getInetAddress();
+            String log = "[" + formattedTime + "]" + "new connetion fetched "+"(" + newSocket.socketId + ")" + ": " + newSocket.socketChannel.socket().getInetAddress() + "\n";
 
             logprint(log, false);
 
@@ -152,6 +147,7 @@ public class SocketProcessor implements Runnable {
         if (fullMessages.size() > 0) {
             for (Message message : fullMessages) {
                 MessageToDiliver.add(message);
+                logprint(message.toString(), false);
             }
             fullMessages.clear();
         }

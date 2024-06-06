@@ -19,12 +19,17 @@ public class Message {
     public String toString(){
         StringBuilder sb = new StringBuilder("类型:");
         sb.append(type);
-        sb.append("长度:");
+        sb.append(" 长度:");
         sb.append(length);
-        sb.append(" 长度2:");
-        sb.append(Content.length);
-        sb.append("内容:");
-        sb.append(new String(Content));
+        sb.append(" Socket:");
+        sb.append(receiver);
+        sb.append(" 内容:\n");
+        try{
+            sb.append(new String(Content,"ASCII"));
+        }
+        catch(Exception e){
+
+        }
         return sb.toString();
     }
 }
