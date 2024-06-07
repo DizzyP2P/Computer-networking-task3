@@ -175,7 +175,6 @@ public class ClientStart {
             
                 // 完成所有数据的写入后，将其转换为字节数组
                 byte[] message = baos.toByteArray();
-                System.out.println(upper);
             
                 // 一次性将整个消息写入外部输出流
                 out.write(message);
