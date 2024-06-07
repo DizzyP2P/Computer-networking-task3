@@ -2,6 +2,7 @@ package TcpClient.core;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -108,10 +109,10 @@ public class ClientStart {
             filein.close();
             fileinchChannel.close();
             file = new File(buffername);
+            System.out.println("Success!");
             if (file.exists()) {
                 file.delete();
             }  
-            System.out.println("Success!");
         }
         catch(FileNotFoundException e){
             e.printStackTrace();
@@ -120,6 +121,7 @@ public class ClientStart {
             e.printStackTrace();
         }
     }
+
     public void printProgress(long totalBytes, long file_size) {
         if(showContent){
             return;
@@ -132,6 +134,7 @@ public class ClientStart {
                     String.join("", Collections.nCopies(width - completed, " ")) + "]";
         System.out.printf("\r%s %d%%", bar, (int) (ratio * 100));
 }
+
     public void start() {
         long startTime = System.currentTimeMillis();  // 开始时间
         try{
@@ -149,27 +152,50 @@ public class ClientStart {
             }  
             file.createNewFile();
             writer = new FileOutputStream(buffername,true);
+            int length = 0;
 
             if(type!=AGREE){
                 System.err.println("错误报文");
             }
+
             System.out.println("请求接受.....");
             System.out.println("处理中.....");
             printProgress(totalSentBytes, send_size);
             for (int i = 0; i < MessageToDiliver.size(); i++) {
+
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                DataOutputStream dos = new DataOutputStream(baos);
                 upper = MessageToDiliver.get(i);
-                out.writeShort(REQUEST);
-                out.writeInt(upper);
+            
+                dos.writeShort(REQUEST);
+                dos.writeInt(upper);
+            
                 byte[] a = readBytesFromFile(off, upper);
-                out.write(a);
+                dos.write(a);
+            
+                // 完成所有数据的写入后，将其转换为字节数组
+                byte[] message = baos.toByteArray();
+                System.out.println(upper);
+            
+                // 一次性将整个消息写入外部输出流
+                out.write(message);
+
                 off+=upper;
                 totalSentBytes += upper;
+
                 printProgress(totalSentBytes, send_size);
+
                 type = in.readShort();
-                in.readInt();
-                bytes = in.readNBytes(upper);
+                length = in.readInt();
+
+                if(length!=upper){
+                    System.err.println("运行中错误");
+                    System.exit(22);
+                }
+
+                bytes = in.readNBytes(length);
                 if(showContent)
-                    System.out.println("第"+ i +"块: "+upper +"   content: \n" + new String(bytes,"ASCII"));
+                System.out.println("第"+ i +"块: "+length+"   content: \n" + new String(bytes,"ASCII"));
                 receive_file_lenth += upper;
                 writer.write(bytes);           
             }

@@ -27,9 +27,9 @@ public class SocketProcessor implements Runnable {
     // 队列，用于存储待发送的消息
     private Queue<Message> MessageToDiliver = new LinkedList<Message>();
     // 缓冲区，用于读取数据
-    private ByteBuffer readByteBuffer = ByteBuffer.allocate(1024*1024);
+    private ByteBuffer readByteBuffer = ByteBuffer.allocate(1024*10240);
     // 缓冲区，用于写入数据
-    private ByteBuffer writeByteBuffer = ByteBuffer.allocate(1024*1024);
+    private ByteBuffer writeByteBuffer = ByteBuffer.allocate(1024*10240);
     // 标志，用于指示是否关闭服务器
     private boolean closeflage = false;
     // 标志，用于指示服务器是否在运行
